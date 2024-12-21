@@ -1,0 +1,6 @@
+[submodule "lexa"]
+	path = lexa
+	url = https://github.com/orybkin/lexa.git
+[submodule "lexa-benchmark"]
+	path = lexa-benchmark
+	url = https://github.com/orybkin/lexa-benchmark.git
