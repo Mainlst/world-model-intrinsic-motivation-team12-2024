@@ -1,0 +1,216 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+library(here)
+library(survival)
+library(survminer)
+library(ggplot2)
+```
+```{r}
+df_base <- read.csv("data_base.csv") %>% mutate(group="Base")
+df_deathcost1 <- read.csv("data_climber_deathcost_mul1.csv") %>% mutate(group="DeathCost-1")
+df_deathcost2 <- read.csv("data_deathcostminus10.csv") %>% mutate(group="DeathCost-2")
+df <- rbind(df_base,df_deathcost1,df_deathcost2)
+df
+```
+
+
+Steps: エピソード内のステップ
+1000ステップでゲームがタイムアウトし、リセットされる模様
+管理打ち切りとみなす
+
+
+```{r}
+
+df %>%
+  mutate(Death = (Steps < 1000 & ExtReward == 0 )) %>% 
+  mutate(GameClear = (ExtReward > 0)) -> df
+```
+```{r fig.height=8}
+df_status <- df
+surv_obj <- Surv(time = df_status$Steps, event = df_status$Death)
+fit <- survfit(surv_obj ~ group, data = df_status)
+
+# カプランマイヤー曲線の描画
+ggsurvplot(
+  fit,
+  data = df_status,
+  pval = TRUE,              # p値の表示
+  conf.int = TRUE,          # 信頼区間を表示
+  risk.table = TRUE,        # リスクテーブルを表示
+  xlab = "Step",   # x軸ラベル
+  ylab = "Survival Probability", # y軸ラベル
+  title = "Kaplan-Meier Survival Curve" # タイトル
+)
+
+```
+
+死亡コスト-10はほとんどが生存に行っているが、多分探索できていないと思われる
+死亡に罰符をつけたほうが生存確率が低い。
+時間依存性のパラメータの可能性があると考える
+GLOBAL STEPの序盤と後半で生存関数に大きく違いがあるのではないか？
+まず、前半だけグラフ化してみる
+
+```{r}
+df <- df %>%
+  mutate(
+    Era = case_when(
+      Step <= 10000000 ~ "First",
+      Step <= 20000000 ~ "Second",
+      TRUE ~ "Last"
+    )
+  )
+```
+
+
+
+```{r fig.height=8}
+df_status <- df %>% filter(Era=="First")
+surv_obj <- Surv(time = df_status$Steps, event = df_status$Death)
+fit <- survfit(surv_obj ~ group + Era, data = df_status)
+
+# カプランマイヤー曲線の描画
+ggsurvplot(
+  fit,
+  data = df_status,
+  pval = TRUE,              # p値の表示
+  conf.int = TRUE,          # 信頼区間を表示
+  risk.table = FALSE,        # リスクテーブルを表示
+  xlab = "Step",   # x軸ラベル
+  ylab = "Survival Probability", # y軸ラベル
+  title = "Kaplan-Meier Survival Curve" # タイトル
+) 
+```
+
+```{r fig.height=8}
+df_status <- df %>% filter(Era=="Second")
+surv_obj <- Surv(time = df_status$Steps, event = df_status$Death)
+fit <- survfit(surv_obj ~ group + Era, data = df_status)
+
+# カプランマイヤー曲線の描画
+ggsurvplot(
+  fit,
+  data = df_status,
+  pval = TRUE,              # p値の表示
+  conf.int = TRUE,          # 信頼区間を表示
+  risk.table = FALSE,        # リスクテーブルを表示
+  xlab = "Step",   # x軸ラベル
+  ylab = "Survival Probability", # y軸ラベル
+  title = "Kaplan-Meier Survival Curve" # タイトル
+) 
+```
+
+
+```{r fig.height=8}
+df_status <- df %>% filter(Era=="Last")
+surv_obj <- Surv(time = df_status$Steps, event = df_status$Death)
+fit <- survfit(surv_obj ~ group + Era, data = df_status)
+
+# カプランマイヤー曲線の描画
+ggsurvplot(
+  fit,
+  data = df_status,
+  pval = TRUE,              # p値の表示
+  conf.int = TRUE,          # 信頼区間を表示
+  risk.table = FALSE,        # リスクテーブルを表示
+  xlab = "Step",   # x軸ラベル
+  ylab = "Survival Probability", # y軸ラベル
+  title = "Kaplan-Meier Survival Curve" # タイトル
+) 
+```
+
+序盤の生存時間延長には寄与するが、中、後半の生存時間時間延長にはマイナス
+
+```{r}
+ggplot(df, aes(x = Step, y = IntRewardMean, color = group)) +
+  geom_line() +  # ラインプロット
+  labs(
+    title = "IntRewardMean vs Step",
+    x = "Step",
+    y = "IntRewardMean",
+    color = "group"
+  ) +
+  ylim(0,0.1) + 
+  theme_minimal() +  # シンプルなテーマ
+  theme(
+    text = element_text(size = 12),
+    legend.position = "top"  # 凡例を上に配置
+  )
+```
+死亡コストは、内因的報酬の増加にはつながっていないように見える
+（減るのは当然だが、ピークの回数も減っている）
+試行毎のばらつきも考えられる
+
+```{r}
+ggplot(df, aes(x = Step, y = MeanReward, color = group)) +
+  geom_line(alpha = 0.7) +  # ラインプロット
+  labs(
+    title = "MeanReward vs Step",
+    x = "Step",
+    y = "MeanReward",
+    color = "group"
+  ) +
+  theme_minimal() +  # シンプルなテーマ
+  theme(
+    text = element_text(size = 12),
+    legend.position = "top"  # 凡例を上に配置
+  )
+```
+
+利得を得るタイミングもBaseのほうが早かった.
+
+Era(Stepを前半、中盤、後半に分けた)毎に比較したとき、
+まだ、学習が進んでないころの生存確率は高い
+それに対し、中盤は生存確率が下がり、後半からまた上がっているように見える
+
+Stepを共変量とおいて、Cox回帰モデル化してみる
+
+
+
+```{r}
+df_cox <- df %>% 
+  filter(group=="Base") %>% 
+  mutate(Step = Step * 1e-6 ) %>% 
+  mutate(Step2 = Step*Step )%>%
+  mutate(Step3 = Step*Step*Step )
+# Cox回帰モデルのフィッティング
+cox_model <- coxph(Surv(time = Steps, event = Death) ~ Step + Step2 + Step3 , data = df_cox)
+summary(cox_model)
+ggforest(cox_model, data = df_cox)
+
+```
+```{r}
+# Stepの範囲を定義
+step_range <- seq(min(df_cox$Step), max(df_cox$Step), length.out = 100)
+
+# ハザード比を計算するデータフレームを作成
+hazard_data <- data.frame(
+  Step = step_range,
+  HazardRatio = exp(coef(cox_model)["Step"] * step_range + coef(cox_model)["Step2"] * step_range^2 + coef(cox_model)["Step3"] * step_range^3)
+)
+
+# グラフの描画
+ggplot(hazard_data, aes(x = Step, y = HazardRatio)) +
+  geom_line(color = "blue", size = 1) +
+  labs(
+    title = "Hazard Ratio vs Step",
+    x = "Step（1.0e-6）",
+    y = "Hazard Ratio"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12)
+  )
+```
+
+ハザード比の簡単な3次関数モデル化
+ざっくり15e-6あたりにピークがあるっぽい
+ベースライン（Step=0）に対して最初は死ぬこともできなかったのが
+J徐々に死に出して、それから生存しやすくなっている。
+一律にリスクを避ける性向を入れるモデルは中盤の効率が悪くなってしまうのだろう
