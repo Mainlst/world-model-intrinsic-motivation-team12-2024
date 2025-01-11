@@ -14,8 +14,7 @@ library(ggplot2)
 ```
 ```{r}
 df_base <- read.csv("data_base.csv") %>% mutate(group="Base")
-df_deathcost1 <- read.csv("data_climber_deathcost_mul1.csv") %>% mutate(group="DeathCost-1")
-df_deathcost2 <- read.csv("data_deathcostminus10.csv") %>% mutate(group="DeathCost-2")
+df_deathcost <- read.csv("data_climber_deathcost_mul1.csv") %>% mutate(group="DeathCost-1")
 df <- rbind(df_base,df_deathcost1,df_deathcost2)
 df
 ```
