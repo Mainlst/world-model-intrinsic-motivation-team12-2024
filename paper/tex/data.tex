@@ -60,11 +60,17 @@ We propose a method to enhance exploration efficiency in reinforcement learning 
 
 こうした課題を克服するために提案されたのが、Self-supervised Network Distillation(SND)\cite{SND}である。SNDは、ターゲットネットワークを自己教師あり学習によって動的に学習させることで、ターゲットモデルの表現を適応的に進化させ、新奇性検出の精度を向上させる。
 
-本研究では、このSNDフレームワークをさらに改良するために2つの取り組みを行った。最初の取り組みは、内発的動機に基づく行動において、エピソード終了時の挙動を調整するためのηの最適化である。内発的動機に基づく行動は、新たな状態に対して無作為に取り組むため、短期間で敵と衝突するなどしてエピソードが終了してしまい、効率的な学習が妨げられる可能性がある。これに対処するため、高い内発的動機によってエピソードが終了した場合、その内発的動機に基づく報酬にマイナスの補正を加える方法を試みた。しかし、このアプローチでは、学習に要するステップ数の短縮やパフォーマンスの顕著な向上には繋がらなかった。これにより、次の改良に焦点を移した。
+本研究では、このSNDフレームワークをさらに改良するために2つの取り組みを行った。最初の取り組みは、内発的動機に基づく行動において、エピソード終了時の挙動を調整するためのηの最適化である。内発的動機に基づく行動は、新たな状態に対して無作為に取り組むため、短期間で敵と衝突するなどしてエピソードが終了してしまい、効率的な学習が妨げられる可能性がある。これに対処するため、高い内発的動機によってエピソードが終了した場合、その内発的動機に基づく報酬にマイナスの補正を加える方法を試みる。しかし、このアプローチでは、学習に要するステップ数の短縮やパフォーマンスの顕著な向上には繋がらなかった。これにより、次の改良に焦点を移した。
 
 2つ目の取り組みは、内発的動機の学習方法を見直すことである。特に対照学習(Contrastive Learning)を行う際、Noisy TV問題が発生することを考慮した。この問題は、エージェントが一時的な新奇性に過度に引き付けられ、環境の本質的な目標から注意が逸れる現象を指す。既往研究においても、ProcgenベンチマークのPitfallのようなゲームで、NPCの点滅やランダム動作にエージェントの関心が不適切に引きつけられ、報酬を得ることができないという課題があった。他の環境においても、初期状態におけるキャラクターの無作為な前後移動がノイズとして作用し、エージェントの探索効率を妨げる可能性がある。この問題に対処するため、対照学習を行う際に前後フレームを考慮し、連続するフレームを同一の状態として学習させる手法を導入した。この方法により、初期状態でのランダムな動作や視覚的なノイズをエージェントの興味の対象から外し、より本質的な違いに基づく状態に関心を移すことが可能となった。このアプローチにより、より短期間で報酬を得ることができ、探索効率を向上させた。
 
 \section{関連研究}
+強化学習（Reinforcement Learning; RL）は報酬が希薄な環境での探索効率を向上させるために、多くの手法が研究されている。その中でも、内発的動機付け（Intrinsic Motivation; IM）は、生物学的動機付けを模倣したアプローチとして注目されており、新奇性や予測誤差などの内部的な信号を探索の指針として用いる\cite{RL},\cite{IM}。IMは、「知識ベース」と「能力ベース」の2つの主要なアプローチに分類される\cite{IM2},\cite{IM3}。知識ベースのアプローチは、探索を通じてエージェントが世界の知識を獲得することに焦点を当て、予測誤差を利用する予測ベースの手法、新奇性を指標とするノベルティベースの手法、情報理論的指標を活用する手法に細分化される\cite{UCEIM},\cite{IMS}。能力ベースのアプローチは、エージェントがスキルを習得し環境内での目標達成能力を向上させることを目的としている\cite{CDE}。
+
+内発的動機付けに関する包括的な調査では、これらの手法が探索性能を高める上で有効である一方、それぞれの制約や実装上の課題も指摘されている\[8\]。特に、予測ベースの手法として代表的なランダムネットワーク蒸留（Random Network Distillation; RND）は、固定されたターゲットネットワークと予測モデルの出力誤差を新奇性の指標とすることで探索を促進するが、ターゲットネットワークが静的であるため、学習が進むにつれて内発的報酬が減少し、後半の探索が停滞するという問題がある\[9, 10\]。一方、好奇心主導型学習を大規模に検証した研究では、新奇性指標や情報理論的アプローチの有用性が示されている\[11\]。情報理論的アプローチとしては、環境動態モデルの情報ゲインを内発的報酬とする VIME（Variational Information Maximizing Exploration）の例が挙げられる\[12\]。
+
+自己教師あり学習（Self-Supervised Learning）を活用した手法としては、BYOL-Explore や VICReg などがあり、モンテズマの復讐や ProcGen 環境のような高難易度タスクにおいても有効な探索を実現している\[13, 14\]。さらに、エージェントが環境を内部モデルとして捉える「世界モデル（World Models）」の概念が近年注目を集めている\[15, 16\]。世界モデルでは、エージェントが環境のダイナミクスを学習し、内部的な予測や計画、さらには潜在表現を用いた目標生成を通じて探索を促進することが可能となる\[17, 18, 19, 20, 21, 22\]。こうした世界モデルの枠組みにおいても、内発的動機付けはエージェントが未知の状態を積極的に探索するための強力な駆動力となる。
+一方、内発的動機付け手法においては、環境中の純粋なノイズや人間のエージェントにとって有益でない情報（いわゆる “Noisy TV”）が過剰に興味を引いてしまう問題が指摘されている\[2, 16\]。この問題に対処するためには、タスク達成や学習効率の観点からノイズを制御する仕組みや報酬設計が必要であるとされる。強化学習アルゴリズムとしては、方策勾配法の一種である PPO（Proximal Policy Optimization）が、実装の容易さと安定性から広く利用されており、内発的動機付け手法との組み合わせによりスパース報酬環境でも効果的な学習が期待される\[23\]。
 
 \section{提案手法}
 \subsection{SNDの基本的な手法}
@@ -212,23 +218,121 @@ SND-Vにおける損失関数の定義は以下の通りである：
 これらの手法は、探索と活用のバランスを最適化し、効率的な学習を実現することが期待される。
 
 \begin{thebibliography}{99}
-   \bibitem[Oudeyer 2007]{IM}
-   P. -Y. Oudeyer, F. Kaplan and V. V. Hafner,
-   Intrinsic Motivation Systems for Autonomous Mental Development,
-   IEEE Transactions on Evolutionary Computation, vol. 11, no. 2, pp. 265-286, April 2007.
+   \bibitem[1]{RL}
+   Sutton, R. S., Barto, A. G.
+   Reinforcement Learning: An Introduction.
+   MIT Press (1998).
+   \bibitem[2]{IM}
+   P. -Y. Oudeyer, F. Kaplan and V. V. Hafner.
+   Intrinsic Motivation Systems for Autonomous Mental Development.
+   IEEE Transactions on Evolutionary Computation, vol. 11, no. 2, pp. 265-286 (2007).
+   \bibitem[3]{RND}
+   Yuri Burda and Harrison Edwards and Amos Storkey and Oleg Klimov.
+   Exploration by random network distillation.
+   International Conference on Learning Representations (2019).
+   \bibitem[4]{SND}
+   Matej Pecháč, Michal Chovanec, Igor Farkaš.
+   Self-supervised network distillation: An effective approach to exploration in sparse reward environments.
+   Neurocomputing.
+   Volume 599 (2024).
+   \bibitem[5]{IM2}
+   Ryan, R. M., Deci, E. L.
+   Intrinsic and extrinsic motivations: Classic definitions and new directions.
+   Contemporary Educational Psychology, 25(1), 54-67 (2000).
+   \bibitem[6]{IM3}
+   Deci, E. L., Ryan, R. M.
+   Intrinsic Motivation and Self-Determination in Human Behavior.
+   Springer Science and Business Media (1985).
 
-   \bibitem[Burda 2019]{RND}
-   Yuri Burda and Harrison Edwards and Amos Storkey and Oleg Klimov,
-   Exploration by random network distillation,
-   International Conference on Learning Representations,
-   2019.
-   
-   \bibitem[Pecháč 2024]{SND}
-   Matej Pecháč, Michal Chovanec, Igor Farkaš,
-   Self-supervised network distillation: An effective approach to exploration in sparse reward environments,
-   Neurocomputing,
-   Volume 599,
-   2024.
+   \bibitem[5]{UCEIM}
+   Bellemare, M. G., Srinivasan, S., Ostrovski, G., Schaul, T., Saxton, D., Munos, R.
+   Unifying Count-Based Exploration and Intrinsic Motivation.
+   Advances in Neural Information Processing Systems, vol. 29 (2016).
+
+   \bibitem[6]{IMS}
+   Aubret, A., Matignon, L., Hassas, S.
+   A Survey on Intrinsic Motivation in Reinforcement Learning.
+   arXiv:1908.06976 (2019).
+
+   \bibitem[7]{CDE}
+   Pathak, D., Agrawal, P., Efros, A. A., Darrell, T.
+   Curiosity-Driven Exploration by Self-Supervised Prediction.
+   In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) (2017).
+
+   \bibitem[8]{IMRL}
+   Yuan, M.
+   Intrinsically-Motivated Reinforcement Learning: A Brief Introduction.
+   arXiv:2203.02298 (2022).
+
+   \bibitem[9]{RND}
+   Burda, Y., Edwards, H., Storkey, A., Klimov, O.
+   Exploration by Random Network Distillation.
+   arXiv:1810.12894 (2018).
+
+   \bibitem[11]{CSL}
+   Burda, Y., Edwards, H., Pathak, D., Storkey, A., Darrell, T., Efros, A. A.
+   Large-Scale Study of Curiosity-Driven Learning.
+   arXiv:1808.04355 (2018).
+
+   \bibitem[12]{VIME}
+   Houthooft, R., Chen, X., Duan, Y., Schulman, J., Turck, F., Abbeel, P.
+   VIME: Variational Information Maximizing Exploration.
+   Advances in Neural Information Processing Systems (NeurIPS) (2016).
+
+   \bibitem[13]{BYOL}
+   Grill, J. B., Strub, F., Altché, F., et al.
+   Bootstrap Your Own Latent: A New Approach to Self-Supervised Learning.
+   Advances in Neural Information Processing Systems (NeurIPS) (2020).
+
+   \bibitem[14]{SEMRE}
+   Seo, Y., Shin, J., Lee, K.
+   State Entropy Maximization with Random Encoders for Efficient Exploration.
+   Advances in Neural Information Processing Systems (NeurIPS) (2021).
+
+   \bibitem[15]{WM}
+   Ha, D., Schmidhuber, J.
+   World Models.
+   arXiv:1803.10122 (2018).
+
+   \bibitem[16]{CB}
+   Schmidhuber, J.
+   A Possibility for Implementing Curiosity and Boredom in Model-Building Neural Controllers.
+   In Proceedings of the IEEE International Joint Conference on Neural Networks (IJCNN) (1991).
+
+   \bibitem[17]{IMRL}
+   Barto, A., Singh, S., Chentanez, N.
+   Intrinsically Motivated Reinforcement Learning.
+   Advances in Neural Information Processing Systems (NeurIPS) (2004).
+
+   \bibitem[18]{LTP}
+   Santucci, V. G., Baldassarre, G., Mirolli, M.
+   Learning to Play with Intrinsically-Motivated, Self-Aware Agents.
+   arXiv:1802.07442 (2018).
+
+   \bibitem[19]{WDM}
+   Sekar, R., Rybkin, O., Daniilidis, K., Abbeel, P.
+   World Discovery Models.
+   arXiv:1902.07685 (2019).
+
+   \bibitem[20]{AWMPC}
+   Shyam, P., Beer, J., Gordon, G. J.
+   Active World Model Learning with Progressive Curiosity.
+   arXiv:2007.07853 (2020).
+
+   \bibitem[21]{LLD}
+   Hafner, D., Lillicrap, T., Fischer, I., Villegas, R., Ha, D., Lee, H., Davidson, J.
+   Learning Latent Dynamics for Planning from Pixels.
+   arXiv:1811.04551 (2019).
+
+   \bibitem[22]{DAG}
+   Corcoll, M., Mesnier, A., Martin, J., Girgin, S.
+   Discovering and Achieving Goals via World Models.
+   arXiv:2110.09514 (2021).
+
+   \bibitem[23]{PPO}
+   Schulman, J., Wolski, F., Dhariwal, P., Radford, A., Klimov, O.
+   Proximal Policy Optimization Algorithms.
+   arXiv:1707.06347 (2017).
 
 \end{thebibliography}
 %%
