@@ -14,8 +14,8 @@ library(ggplot2)
 ```
 ```{r}
 df_base <- read.csv("data_base.csv") %>% mutate(group="Base")
-df_deathcost <- read.csv("data_climber_deathcost_mul1.csv") %>% mutate(group="DeathCost-1")
-df <- rbind(df_base,df_deathcost1,df_deathcost2)
+df_deathcost <- read.csv("data_climber_deathcost_mul1.csv") %>% mutate(group="Method1")
+df <- rbind(df_base,df_deathcost)
 df
 ```
 
@@ -67,27 +67,76 @@ df <- df %>%
   )
 ```
 
+```{r}
+#library(extrafont)
+#font_import() # フォントのインポート (時間がかかる場合があります)
+#loadfonts(device = "win") # フォントのロード
+```
 
 
-```{r fig.height=8}
-df_status <- df %>% filter(Era=="First")
+```{r fig.height=5}
+df_status <- df
+df_status$group <- ifelse(df_status$group == "Method1", "Method_1", df_status$group)
 surv_obj <- Surv(time = df_status$Steps, event = df_status$Death)
 fit <- survfit(surv_obj ~ group + Era, data = df_status)
-
 # カプランマイヤー曲線の描画
-ggsurvplot(
+p <- ggsurvplot(
   fit,
   data = df_status,
   pval = TRUE,              # p値の表示
   conf.int = TRUE,          # 信頼区間を表示
   risk.table = FALSE,        # リスクテーブルを表示
-  xlab = "Step",   # x軸ラベル
-  ylab = "Survival Probability", # y軸ラベル
-  title = "Kaplan-Meier Survival Curve" # タイトル
+  xlab = "Step in the episode",   # x軸ラベル
+  ylab = "あSurvival Probability", # y軸ラベル
 ) 
+ggsave("kaplan_meier_plot.eps", plot = p$plot, device = "eps", width = 10, height = 6)
 ```
 
-```{r fig.height=8}
+```{r fig.width=10}
+# ggsurvplotをベースにプロット
+p <- ggsurvplot(
+  fit,
+  data = df_status,
+  pval = TRUE,              # p値の表示
+  conf.int = TRUE,          # 信頼区間を表示
+  risk.table = FALSE,       # リスクテーブルを表示
+  xlab = "Step in the episode",   # x軸ラベル
+  ylab = "Survival Probability", # y軸ラベル
+  title = "Kaplan-Meier Survival Curve", # タイトル
+  ggtheme = theme_minimal()  # シンプルなテーマ
+)
+
+# 各系列の右端の座標を計算してラベルを追加
+surv_data <- as.data.frame(fit$surv) %>% 
+  mutate(time = fit$time) %>% 
+  pivot_longer(cols = -time, names_to = "series", values_to = "survival")
+
+# 右端の位置を計算（最後のtimeとsurvivalの組み合わせ）
+labels_data <- surv_data %>%
+  group_by(series) %>%
+  filter(time == max(time)) %>%
+  ungroup() %>%
+  mutate(label = paste0("Series: ", series)) # ラベル名（必要に応じて調整）
+
+# 元のプロットにアノテーションを追加
+p$plot + 
+  geom_text(
+    data = labels_data, 
+    aes(x = time, y = survival, label = label),
+    hjust = -0.1, # 少し右にずらす
+    vjust = 0,    # 中央揃え
+    size = 4,
+    color = "black"
+  ) +
+  xlim(NA, max(surv_data$time) * 10) +  # 右にスペースを追加
+  theme(
+    plot.margin = unit(c(1, 10, 1, 1), "cm") # 右側の余白を拡張
+  )
+```
+
+
+
+```{r fig.height=4}
 df_status <- df %>% filter(Era=="Second")
 surv_obj <- Surv(time = df_status$Steps, event = df_status$Death)
 fit <- survfit(surv_obj ~ group + Era, data = df_status)
