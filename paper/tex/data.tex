@@ -67,9 +67,9 @@ We propose a method to enhance exploration efficiency in reinforcement learning 
 \section{関連研究}
 強化学習（Reinforcement Learning; RL）は報酬が希薄な環境での探索効率を向上させるために、多くの手法が研究されている。その中でも、内発的動機付け（Intrinsic Motivation; IM）は、生物学的動機付けを模倣したアプローチとして注目されており、新奇性や予測誤差などの内部的な信号を探索の指針として用いる\cite{RL},\cite{IM}。IMは、「知識ベース」と「能力ベース」の2つの主要なアプローチに分類される\cite{IM2},\cite{IM3}。知識ベースのアプローチは、探索を通じてエージェントが世界の知識を獲得することに焦点を当て、予測誤差を利用する予測ベースの手法、新奇性を指標とするノベルティベースの手法、情報理論的指標を活用する手法に細分化される\cite{UCEIM},\cite{IMS}。能力ベースのアプローチは、エージェントがスキルを習得し環境内での目標達成能力を向上させることを目的としている\cite{CDE}。
 
-内発的動機付けに関する包括的な調査では、これらの手法が探索性能を高める上で有効である一方、それぞれの制約や実装上の課題も指摘されている\cite{IMRL}。特に、予測ベースの手法として代表的なランダムネットワーク蒸留（Random Network Distillation; RND）は、固定されたターゲットネットワークと予測モデルの出力誤差を新奇性の指標とすることで探索を促進するが、ターゲットネットワークが静的であるため、学習が進むにつれて内発的報酬が減少し、後半の探索が停滞するという問題がある\cite{RND},\cite{IMRL}。一方、好奇心主導型学習を大規模に検証した研究では、新奇性指標や情報理論的アプローチの有用性が示されている\cite{CSL}。情報理論的アプローチとしては、環境動態モデルの情報ゲインを内発的報酬とする VIME（Variational Information Maximizing Exploration）の例が挙げられる\cite{VIME}。
+内発的動機付けに関する包括的な調査では、これらの手法が探索性能を高める上で有効である一方、それぞれの制約や実装上の課題も指摘されている\cite{IMRL},\cite{IMRL2}。特に、予測ベースの手法として代表的なランダムネットワーク蒸留（Random Network Distillation; RND）は、固定されたターゲットネットワークと予測モデルの出力誤差を新奇性の指標とすることで探索を促進するが、ターゲットネットワークが静的であるため、学習が進むにつれて内発的報酬が減少し、後半の探索が停滞するという問題がある\cite{RND},\cite{IMRL},\cite{IMRL2}。一方、好奇心主導型学習を大規模に検証した研究では、新奇性指標や情報理論的アプローチの有用性が示されている\cite{CSL}。情報理論的アプローチとしては、環境動態モデルの情報ゲインを内発的報酬とする VIME（Variational Information Maximizing Exploration）の例が挙げられる\cite{VIME}。
 
-自己教師あり学習（Self-Supervised Learning）を活用した手法としては、BYOL-Explore や VICReg などがあり、モンテズマの復讐や ProcGen 環境のような高難易度タスクにおいても有効な探索を実現している\cite{BYOL},\cite{SEMRE}。さらに、エージェントが環境を内部モデルとして捉える「世界モデル（World Models）」の概念が近年注目を集めている\cite{WM}\cite{CB}。世界モデルでは、エージェントが環境のダイナミクスを学習し、内部的な予測や計画、さらには潜在表現を用いた目標生成を通じて探索を促進することが可能となる\cite{IMRL},\cite{LTP},\cite{WDM},\cite{AWMPC},\cite{LLD},\cite{DAG}。こうした世界モデルの枠組みにおいても、内発的動機付けはエージェントが未知の状態を積極的に探索するための強力な駆動力となる。
+自己教師あり学習（Self-Supervised Learning）を活用した手法としては、BYOL-Explore や VICReg などがあり、モンテズマの復讐や ProcGen 環境のような高難易度タスクにおいても有効な探索を実現している\cite{BYOL},\cite{SEMRE}。さらに、エージェントが環境を内部モデルとして捉える「世界モデル（World Models）」の概念が近年注目を集めている\cite{WM}\cite{CB}。世界モデルでは、エージェントが環境のダイナミクスを学習し、内部的な予測や計画、さらには潜在表現を用いた目標生成を通じて探索を促進することが可能となる\cite{IMRL},\cite{IMRL2},\cite{LTP},\cite{WDM},\cite{AWMPC},\cite{LLD},\cite{DAG}。こうした世界モデルの枠組みにおいても、内発的動機付けはエージェントが未知の状態を積極的に探索するための強力な駆動力となる。
 一方、内発的動機付け手法においては、環境中の純粋なノイズや人間のエージェントにとって有益でない情報（いわゆる "Noisy TV"）が過剰に興味を引いてしまう問題が指摘されている\cite{IM},\cite{CB}。この問題に対処するためには、タスク達成や学習効率の観点からノイズを制御する仕組みや報酬設計が必要であるとされる。強化学習アルゴリズムとしては、方策勾配法の一種である PPO（Proximal Policy Optimization）が、実装の容易さと安定性から広く利用されており、内発的動機付け手法との組み合わせによりスパース報酬環境でも効果的な学習が期待される\cite{PPO}。
 
 \section{提案手法}
@@ -294,7 +294,7 @@ SND-Vにおける損失関数の定義は以下の通りである：
    A Possibility for Implementing Curiosity and Boredom in Model-Building Neural Controllers.
    In Proceedings of the IEEE International Joint Conference on Neural Networks (IJCNN) (1991).
 
-   \bibitem[17]{IMRL}
+   \bibitem[17]{IMRL2}
    Barto, A., Singh, S., Chentanez, N.
    Intrinsically Motivated Reinforcement Learning.
    Advances in Neural Information Processing Systems (NeurIPS) (2004).
